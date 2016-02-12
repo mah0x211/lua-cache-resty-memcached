@@ -48,6 +48,7 @@ local DEFAULT_OPTS = {
 };
 -- errors
 local EENCODE = 'encoding error: %q';
+local EDECODE = 'decoding error: %q';
 local EEXEC = 'execution error: %q';
 
 -- connection class
@@ -182,6 +183,9 @@ function CacheMemcached:get( key, ttl )
     
     if res then
         res, err = decode( res );
+        if err then
+            return nil, EDECODE:format( err );
+        end
     end
     
     return res, err;
