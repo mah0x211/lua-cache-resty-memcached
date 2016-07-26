@@ -38,11 +38,11 @@ local DEFAULT_HOST = '127.0.0.1';
 local DEFAULT_PORT = 11211;
 local DEFAULT_OPTS = {
     -- connect timeout
-    timeout = 1000,
+    timeout = typeof.uint,
     -- unlimited
-    idle = 0,
+    idle = typeof.uint,
     -- pool size
-    pool = 1
+    pool = typeof.uint
 };
 -- errors
 local EENCODE = 'encoding error: %q';
@@ -67,21 +67,20 @@ function MemcConn:init( host, port, opts )
     elseif not typeof.table( opts ) then
         return nil, 'opts must be table';
     end
-    
+
     own.host = host;
     own.port = port;
-    
-    for k, v in pairs( DEFAULT_OPTS ) do
+
+    for k, verify in pairs( DEFAULT_OPTS ) do
         opt = opts[k];
-        if opt == nil then
-            own[k] = v;
-        elseif not typeof.uint( opt ) then
-            return nil, ('%s must be uint'):format( k );
-        else
+        if opt ~= nil then
+            if not verify( opt ) then
+                return nil, ('%s must be uint'):format( k );
+            end
             own[k] = opt;
         end
     end
-    
+
     return self;
 end
 
@@ -95,20 +94,34 @@ function MemcConn:open()
     if not db then
         return nil, err;
     end
-    
-    db:set_timeout( own.timeout );
+
+    -- use configured timeout
+    if own.timeout then
+        db:set_timeout( own.timeout );
+    end
+
     ok, err = db:connect( own.host, own.port );
     if not ok then
         return nil, err;
     end
-    
+
     return db;
 end
 
 
 function MemcConn:close( db )
     local own = protected(self);
-    local ok, err = db:set_keepalive( own.idle, own.pool );
+    local _, err;
+
+    if own.idle then
+        if own.pool then
+            _, err = db:set_keepalive( own.idle, own.pool );
+        else
+            _, err = db:set_keepalive( own.idle );
+        end
+    else
+        _, err = db:set_keepalive();
+    end
 
     return err;
 end
