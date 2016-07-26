@@ -33,9 +33,7 @@ local memcached = require('resty.memcached');
 local encode = require('cjson.safe').encode;
 local decode = require('cjson.safe').decode;
 local typeof = require('util').typeof;
-local unpack = unpack or table.unpack;
 -- constants
-local NULL = ngx.null;
 local DEFAULT_HOST = '127.0.0.1';
 local DEFAULT_PORT = 11211;
 local DEFAULT_OPTS = {
@@ -49,7 +47,6 @@ local DEFAULT_OPTS = {
 -- errors
 local EENCODE = 'encoding error: %q';
 local EDECODE = 'decoding error: %q';
-local EEXEC = 'execution error: %q';
 
 -- connection class
 local MemcConn = require('halo').class.MemcConn;
@@ -92,8 +89,8 @@ end
 function MemcConn:open()
     local own = protected(self);
     local db, err = memcached:new();
-    local ok, res, kerr;
-    
+    local ok;
+
     -- internal error
     if not db then
         return nil, err;
@@ -140,7 +137,7 @@ end
 
 function CacheMemcached:set( key, val, ttl )
     local conn = protected(self).conn;
-    local db, ok, err;
+    local db, err, _;
 
     val, err = encode( val );
     if err then
@@ -153,7 +150,7 @@ function CacheMemcached:set( key, val, ttl )
         return false, err;
     end
 
-    ok, err = db:set( key, val, ttl );
+    _, err = db:set( key, val, ttl );
     conn:close( db );
 
     return err == nil, err;
@@ -163,7 +160,7 @@ end
 function CacheMemcached:get( key, ttl )
     local conn = protected(self).conn;
     local db, err = conn:open();
-    local res, ok;
+    local res, ok, _;
 
     -- got internal error
     if err then
