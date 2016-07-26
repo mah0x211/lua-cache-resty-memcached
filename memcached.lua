@@ -8,10 +8,10 @@
   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
   copies of the Software, and to permit persons to whom the Software is
   furnished to do so, subject to the following conditions:
- 
+
   The above copyright notice and this permission notice shall be included in
   all copies or substantial portions of the Software.
- 
+
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
@@ -19,12 +19,12 @@
   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
- 
+
   memcached.lua
   lua-cache-resty-memcached
-  
+
   Created by Masatoshi Teruya on 16/02/12.
-  
+
 --]]
 
 -- modules
@@ -58,7 +58,7 @@ local MemcConn = require('halo').class.MemcConn;
 function MemcConn:init( host, port, opts )
     local own = protected(self);
     local opt;
-    
+
     host = host or DEFAULT_HOST;
     port = port or DEFAULT_PORT;
     if not typeof.string( host ) then
@@ -112,7 +112,7 @@ end
 function MemcConn:close( db )
     local own = protected(self);
     local ok, err = db:set_keepalive( own.idle, own.pool );
-    
+
     return err;
 end
 
@@ -128,12 +128,12 @@ local CacheMemcached = require('halo').class.CacheMemcached;
 function CacheMemcached:init( host, port, opts, ttl )
     local own = protected(self);
     local err;
-    
+
     own.conn, err = MemcConn.new( host, port, opts );
     if err then
         return nil, err;
     end
-    
+
     return Cache.new( self, ttl );
 end
 
@@ -141,21 +141,21 @@ end
 function CacheMemcached:set( key, val, ttl )
     local conn = protected(self).conn;
     local db, ok, err;
-    
+
     val, err = encode( val );
     if err then
         return false, EENCODE:format( err );
     end
-    
+
     -- got internal error
     db, err = conn:open();
     if err then
         return false, err;
     end
-    
+
     ok, err = db:set( key, val, ttl );
     conn:close( db );
-    
+
     return err == nil, err;
 end
 
@@ -164,7 +164,7 @@ function CacheMemcached:get( key, ttl )
     local conn = protected(self).conn;
     local db, err = conn:open();
     local res, ok;
-    
+
     -- got internal error
     if err then
         return nil, err;
@@ -177,17 +177,17 @@ function CacheMemcached:get( key, ttl )
             return nil, err ~= 'NOT_FOUND' and err or nil;
         end
     end
-    
+
     res, _, err = db:get( key );
     conn:close( db );
-    
+
     if res then
         res, err = decode( res );
         if err then
             return nil, EDECODE:format( err );
         end
     end
-    
+
     return res, err;
 end
 
@@ -196,18 +196,18 @@ function CacheMemcached:delete( key )
     local conn = protected(self).conn;
     local db, err = conn:open();
     local ok;
-    
+
     if err then
         return false, err;
     end
-    
+
     ok, err = db:delete( key );
     conn:close( db );
-    
+
     if not ok then
         return false, err ~= 'NOT_FOUND' and err or nil;
     end
-    
+
     return true;
 end
 
